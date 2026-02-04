@@ -1,8 +1,10 @@
 "use client"
 import React, { useState } from 'react'
+import toast from 'react-hot-toast'
 
 
-const NotesClient = () => {
+const NotesClient = ({initialNotes}) => {
+    const [notes,setNotes]=useState(initialNotes || [])
     const [title,setTitle]=useState("")
     const [content,setContent]=useState("")
     const [loading,setLoading]=useState(false)
@@ -18,10 +20,33 @@ const NotesClient = () => {
                 body:JSON.stringify({title,content})
             })
             const result= await response.json()
-            console.log(result)
+            // console.log(result)
+            if(result.success){
+                setNotes([result.data,...notes])
+                toast.success("Notes created successfully")
+                setTitle("")
+                setContent("")
+            }
             setLoading(false)
         } catch (error) {
             console.error("error creating note:",error)
+            toast.error('something went wrong')
+        }
+    }
+
+    const deleteNote=async(id)=>{
+        try {
+            const response=await fetch(`/api/notes/${id}`,{
+                method:"DELETE"
+            })
+            const result=await response.json()
+            if(result.success){
+                setNotes(notes.filter((note)=>note._id !==id))
+                toast.success("Notes Deleted Successfully")
+            }
+        } catch (error) {
+            console.error("Error deleting note:",error)
+            toast.error("something went wrong")
         }
     }
     
@@ -55,6 +80,30 @@ const NotesClient = () => {
                 </button>
             </div>
         </form>
+        <div className='space-y-4'>
+            <h2 className='text-xl font-semibold'>Your Notes ({notes.lenght})</h2>
+            {notes.length===0 ? (
+                <p className='text-gray-500'>No Notes Yet. Create Your First Note Above</p>
+            ):(
+                notes.map((note)=>(
+                    <div key={note._id} className='bg-white p-6 rounded-lg shadow-md'>
+                        <div className='flex justify-between items-start mb-2'>
+                            <h3 className='text-lg font-semibold'>{note.title}</h3>
+                            <div className='flex gap-2'>
+                                <button className='text-green-500 hover:text-green-700 text-sm'>Edit</button>
+                                <button onClick={()=>deleteNote(note._id)} className='text-red-500 hover:text-red-700 text-sm'>Delete</button>
+                            </div>
+                        </div>
+                        <p className='text-gray-700 mb-2'>{notes.content}</p>
+                        <p className='text-sm text-gray-500'>Created :{new Date(note.createdAt).toLocaleDateString()}</p>
+                        {note.updatedAt !== note.createdAt &&(
+                            <p className='text-sm text-gray-500'>Updated:{new Date(note.updatedAt).toLocaleDateString()}</p>
+                        )}
+                    </div>
+                ))
+            )}
+
+        </div>
         
     </div>
   )
